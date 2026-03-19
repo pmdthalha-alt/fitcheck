@@ -6,11 +6,13 @@
 // MATH UTILITIES
 function distance(p1, p2) {
   if (!p1 || !p2) return Infinity;
+  if (!p1 || !p2) return 0; // Return 0 instead of Infinity to prevent NaN cascades
   return Math.sqrt(Math.pow(p1.x - p2.x, 2) + Math.pow(p1.y - p2.y, 2));
 }
 
 function euclideanDistance(p1, p2) {
   if (!p1 || !p2) return Infinity;
+  if (!p1 || !p2) return 0;
   return Math.sqrt(
     Math.pow(p1.x - p2.x, 2) + 
     Math.pow(p1.y - p2.y, 2) + 
@@ -27,6 +29,11 @@ function angle(p1, p2, p3) {
   if (a === 0 || b === 0) return 0;
   
   return Math.acos((Math.pow(a, 2) + Math.pow(b, 2) - Math.pow(c, 2)) / (2 * a * b)) * 180 / Math.PI;
+  // Clamp value to [-1, 1] to prevent NaN from floating point errors
+  let cosine = (Math.pow(a, 2) + Math.pow(b, 2) - Math.pow(c, 2)) / (2 * a * b);
+  cosine = Math.max(-1, Math.min(1, cosine));
+  
+  return Math.acos(cosine) * 180 / Math.PI;
 }
 
 // POSE ANALYSIS
@@ -48,6 +55,7 @@ function getBodyMetrics(landmarks) {
   return {
     headHeight: distance(landmarks[0], landmarks[1]), // Nose to eyes
     shoulderWidth: distance(landmarks[11], landmarks[12]), // Shoulder to shoulder
+    shoulderWidth: euclideanDistance(landmarks[11], landmarks[12]), // 3D distance for better size accuracy
     torsoHeight: distance(landmarks[11], landmarks[23]), // Shoulder to hip
     armLength: distance(landmarks[12], landmarks[14]), // Shoulder to wrist
     elbowAngle: angle(landmarks[12], landmarks[14], landmarks[16]), // Arm bend
@@ -238,7 +246,7 @@ class PoseSmoother {
   }
 }
 
-// EXPORT
+// EXPORT (CommonJS compatibility)
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
     distance,
@@ -257,3 +265,38 @@ if (typeof module !== 'undefined' && module.exports) {
     PoseSmoother
   };
 }
+
+// Expose as global for non-module legacy access
+if (typeof window !== 'undefined') {
+  window.getVisibilityScore = getVisibilityScore;
+  window.getPoseStability = getPoseStability;
+  window.getBodyMetrics = getBodyMetrics;
+  window.getCoverageBoundingBox = getCoverageBoundingBox;
+  window.isValidPose = isValidPose;
+  window.isValidDetection = isValidDetection;
+  window.PoseSmoother = PoseSmoother;
+  window.distance = distance;
+  window.euclideanDistance = euclideanDistance;
+  window.angle = angle;
+  window.calculateConfidence = calculateConfidence;
+  window.calculatePoints = calculatePoints;
+  window.findClosestMatch = findClosestMatch;
+}
+
+// ES module exports
+export {
+  distance,
+  euclideanDistance,
+  angle,
+  getPoseStability,
+  getBodyMetrics,
+  getVisibilityScore,
+  getBodyPartVisibility,
+  getCoverageBoundingBox,
+  calculateConfidence,
+  calculatePoints,
+  findClosestMatch,
+  isValidPose,
+  isValidDetection,
+  PoseSmoother
+};
