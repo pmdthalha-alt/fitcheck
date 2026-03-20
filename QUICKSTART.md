@@ -60,7 +60,7 @@ npx http-server
 - Select "Open with Live Server"
 
 #### Step 4: Open in Browser
-Visit: **http://localhost:8000** (or http://localhost:5000)
+Visit: **http://localhost:5000**
 
 ---
 
@@ -309,6 +309,6 @@ Your FitCheck AI system is fully functional with:
 - ✅ Professional UI
 - ✅ REST API
 
-**Next run: `npm start` then open http://localhost:8000**
+**Next run: `npm start` then open http://localhost:5000**
 
 Happy detecting! 🚀

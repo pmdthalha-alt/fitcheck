@@ -63,7 +63,7 @@ npx http-server
 # Right-click index.html → Open with Live Server
 ```
 
-Then visit: **http://localhost:8000**
+Then visit: **http://localhost:5000**
 
 ---
 

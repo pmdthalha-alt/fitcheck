@@ -49,4 +49,13 @@ export class StorageManager {
   getLatest() {
     return this.history.length ? this.history[0] : null;
   }
+
+  getSummary() {
+    const latest = this.getLatest();
+    return {
+      count: this.history.length,
+      latestTimestamp: latest?.timestamp || null,
+      latestSize: latest?.bodyModel?.size || latest?.bodyModel?.recommendedSize || null
+    };
+  }
 }

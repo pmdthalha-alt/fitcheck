@@ -5,13 +5,11 @@
 
 // MATH UTILITIES
 function distance(p1, p2) {
-  if (!p1 || !p2) return Infinity;
-  if (!p1 || !p2) return 0; // Return 0 instead of Infinity to prevent NaN cascades
+  if (!p1 || !p2) return 0;
   return Math.sqrt(Math.pow(p1.x - p2.x, 2) + Math.pow(p1.y - p2.y, 2));
 }
 
 function euclideanDistance(p1, p2) {
-  if (!p1 || !p2) return Infinity;
   if (!p1 || !p2) return 0;
   return Math.sqrt(
     Math.pow(p1.x - p2.x, 2) + 
@@ -28,8 +26,6 @@ function angle(p1, p2, p3) {
   
   if (a === 0 || b === 0) return 0;
   
-  return Math.acos((Math.pow(a, 2) + Math.pow(b, 2) - Math.pow(c, 2)) / (2 * a * b)) * 180 / Math.PI;
-  // Clamp value to [-1, 1] to prevent NaN from floating point errors
   let cosine = (Math.pow(a, 2) + Math.pow(b, 2) - Math.pow(c, 2)) / (2 * a * b);
   cosine = Math.max(-1, Math.min(1, cosine));
   
@@ -54,22 +50,26 @@ function getBodyMetrics(landmarks) {
   
   return {
     headHeight: distance(landmarks[0], landmarks[1]), // Nose to eyes
-    shoulderWidth: distance(landmarks[11], landmarks[12]), // Shoulder to shoulder
     shoulderWidth: euclideanDistance(landmarks[11], landmarks[12]), // 3D distance for better size accuracy
     torsoHeight: distance(landmarks[11], landmarks[23]), // Shoulder to hip
-    armLength: distance(landmarks[12], landmarks[14]), // Shoulder to wrist
+    armLength: distance(landmarks[12], landmarks[16]), // Shoulder to wrist
     elbowAngle: angle(landmarks[12], landmarks[14], landmarks[16]), // Arm bend
-    legLength: distance(landmarks[24], landmarks[26]), // Hip to ankle
+    legLength: distance(landmarks[24], landmarks[28]), // Hip to ankle
     hipWidth: distance(landmarks[23], landmarks[24]), // Hip to hip
     neckPosition: { x: landmarks[0].x, y: landmarks[0].y } // Head position
   };
 }
 
 function getVisibilityScore(landmarks) {
-  if (!landmarks) return 0;
-  
-  const visibleCount = landmarks.filter(l => l.visibility > 0.5).length;
-  return visibleCount / landmarks.length;
+  if (!landmarks || landmarks.length < 29) return 0;
+
+  // Favor the landmarks that matter most for scan readiness instead of
+  // requiring a high score across every MediaPipe point.
+  const coreIndices = [0, 11, 12, 23, 24, 25, 26, 27, 28];
+  const coreVisible = coreIndices.filter((i) => landmarks[i]?.visibility > 0.35).length / coreIndices.length;
+  const overallVisible = landmarks.filter((l) => l?.visibility > 0.35).length / landmarks.length;
+
+  return Math.min(1, coreVisible * 0.7 + overallVisible * 0.3);
 }
 
 function getBodyPartVisibility(landmarks, bodyPartIndices) {
@@ -152,7 +152,7 @@ function calculatePoints(detection, metrics = {}) {
 // COMPARISON & MATCHING
 function findClosestMatch(detection, database) {
   let bestMatch = null;
-  let bestScore = 0;
+  let bestScore = -Infinity;
   
   for (const item of database) {
     let score = 0;
@@ -163,7 +163,7 @@ function findClosestMatch(detection, database) {
     }
     
     // Confidence matching
-    score += Math.abs(detection.confidence - item.confidence) * 50;
+    score += (1 - Math.abs(detection.confidence - item.confidence)) * 50;
     
     // Body parts matching
     if (detection.bodyParts && item.bodyParts) {

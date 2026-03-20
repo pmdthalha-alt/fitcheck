@@ -14,14 +14,22 @@ import { TryOn } from './tryon.js';
   const pose = new PoseEngine({
     onPose: (landmarks, meta) => scan.updatePose(landmarks, meta),
     onFeedback: (feedback) => {
-      if (feedback && feedback.messages && feedback.messages.length) {
-        ui.showFeedback(feedback.messages.join(' • '), 'warning');
+      const messages = Array.isArray(feedback?.messages)
+        ? feedback.messages
+        : feedback?.message
+          ? [feedback.message]
+          : [];
+
+      if (messages.includes('No person detected')) {
+        scan.handlePoseLost(feedback);
+        return;
       }
     },
     onError: (error) => {
       console.error('Pose engine error', error);
       ui.setState('idle');
       ui.setInstruction('Camera / pose initialization failed.');
+      ui.pushCoachMessage('Camera access failed. Allow camera permissions and refresh so I can guide your scan.', 'coach', 'camera-error', true);
     }
   });
 

@@ -74,7 +74,7 @@ npm start
 python -m http.server 8000
 ```
 
-**Visit**: `http://localhost:8000`
+**Visit**: `http://localhost:5000`
 
 ---
 
@@ -430,7 +430,7 @@ This prototype is **production-ready** for investor demonstrations:
 **Next Steps:**
 1. Run `npm install`
 2. Run `npm start`
-3. Open http://localhost:8000
+3. Open http://localhost:5000
 4. Allow camera access
 5. Click "START SCAN" and watch the magic!
 

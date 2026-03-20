@@ -248,8 +248,8 @@ python -m http.server 8000
 ```
 
 ### 3. Open Browser
-- **Main App**: http://localhost:8000
-- **API Console**: http://localhost:8000/api-console.html
+- **Main App**: http://localhost:5000
+- **API Console**: http://localhost:5000/api-console.html
 - **Health Check**: http://localhost:5000/api/health
 
 ---

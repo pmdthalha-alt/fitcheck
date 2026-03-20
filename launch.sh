@@ -1,46 +1,36 @@
 #!/bin/bash
-# FitCheck AI Pro - Quick Launch Script for Linux/Mac
+# FitCheck - Quick launch script for Linux/Mac
 
 echo ""
-echo "╔═══════════════════════════════════════════════════════════╗"
-echo "║       🎯 FitCheck AI Pro - Smart Launch System            ║"
-echo "╚═══════════════════════════════════════════════════════════╝"
+echo "================================"
+echo " FitCheck - Setup and Launch"
+echo "================================"
 echo ""
 
-# Check Node.js
-if ! command -v node &> /dev/null; then
-    echo "❌ Node.js not installed. Install from: https://nodejs.org/"
+if ! command -v node >/dev/null 2>&1; then
+    echo "ERROR: Node.js is not installed."
+    echo "Install it from: https://nodejs.org/"
     exit 1
 fi
 
-echo "✅ Node.js detected: $(node -v)"
-echo ""
+echo "[1/3] Node.js detected: $(node -v)"
+echo "[2/3] Installing dependencies..."
+npm install >/dev/null 2>&1
 
-# Install dependencies
-echo "📦 Installing dependencies..."
-npm install > /dev/null 2>&1
-
-if [ $? -eq 0 ]; then
-    echo "✅ Dependencies installed"
-else
-    echo "❌ Installation failed"
+if [ $? -ne 0 ]; then
+    echo "ERROR: npm install failed."
     exit 1
 fi
 
+echo "[3/3] Starting FitCheck on http://localhost:5000"
 echo ""
-echo "╔═══════════════════════════════════════════════════════════╗"
-echo "║              🚀 Starting FitCheck AI Pro                  ║"
-echo "╚═══════════════════════════════════════════════════════════╝"
+echo "Open these pages after the server starts:"
+echo "  Main app:    http://localhost:5000/"
+echo "  API console: http://localhost:5000/api-console.html"
+echo "  API tester:  http://localhost:5000/api-test.html"
 echo ""
-echo "📍 Backend Server: http://localhost:5000"
-echo "🌐 Frontend: http://localhost:8000"
-echo "🧪 API Console: http://localhost:8000/api-console.html"
-echo ""
-echo "Hint: Open new terminal and run:"
-echo "      python3 -m http.server 8000"
-echo "      or npx http-server"
-echo ""
-echo "Press Ctrl+C to stop the server"
+echo "Use 'npm run advanced' if you want the smoothed API variant instead."
+echo "Press Ctrl+C to stop the server."
 echo ""
 
 npm start

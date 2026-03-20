@@ -21,16 +21,16 @@ echo [1/4] Node.js detected
 echo [2/4] Installing dependencies...
 call npm install
 
-echo [3/4] Starting backend server...
+echo [3/4] Starting FitCheck...
 echo.
 echo =================================
-echo Server starting on port 5000...
+echo App and API starting on port 5000...
 echo Open your browser to:
-echo http://localhost:8000
+echo http://localhost:5000
 echo =================================
 echo.
 
-start "" http://localhost:5000/api/health
+start "" http://localhost:5000
 
 REM Start the server
 node server.js

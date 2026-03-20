@@ -13,7 +13,7 @@ export class PoseEngine {
     this.pose = null;
     this.video = document.getElementById('video');
     this.skeletonCanvas = document.getElementById('skeleton');
-    this.skeletonCtx = this.skeletonCanvas.getContext('2d');
+    this.skeletonCtx = this.skeletonCanvas?.getContext('2d');
     this.frameBuffer = [];
     this.maxBuffer = 50;
     this.lastStableLandmarks = null;
@@ -26,7 +26,17 @@ export class PoseEngine {
 
   async start() {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
+      if (!this.video || !this.skeletonCanvas || !this.skeletonCtx) {
+        throw new Error('Missing required camera elements.');
+      }
+
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: 'user',
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        }
+      });
       this.video.srcObject = stream;
       await new Promise((resolve) => (this.video.onloadeddata = resolve));
       await this.initPose();
@@ -43,8 +53,8 @@ export class PoseEngine {
     this.pose.setOptions({
       modelComplexity: 1,
       smoothLandmarks: true,
-      minDetectionConfidence: 0.55,
-      minTrackingConfidence: 0.55
+      minDetectionConfidence: 0.48,
+      minTrackingConfidence: 0.48
     });
 
     this.pose.onResults((results) => this.handleResults(results));
@@ -58,10 +68,10 @@ export class PoseEngine {
       height: 720
     });
 
-    this.camera.start();
+    await this.camera.start();
 
-    this.skeletonCanvas.width = 1280;
-    this.skeletonCanvas.height = 720;
+    this.resizeCanvas();
+    window.addEventListener('resize', () => this.resizeCanvas());
   }
 
   handleResults(results) {
@@ -69,7 +79,8 @@ export class PoseEngine {
 
     const landmarks = results.poseLandmarks;
     if (!landmarks || !landmarks.length) {
-      this.onFeedback?.({ message: 'No person detected', type: 'warning' });
+      this.lastStableLandmarks = null;
+      this.onFeedback?.({ message: 'No person detected', messages: ['No person detected'], type: 'warning' });
       return;
     }
 
@@ -93,14 +104,17 @@ export class PoseEngine {
       smoothed[11].x - smoothed[12].x,
       smoothed[11].y - smoothed[12].y
     );
-    const isTooFar = shoulderWidth < 0.14;
-    const isTooClose = shoulderWidth > 0.26;
+    const isTooFar = shoulderWidth < 0.11;
+    const isTooClose = shoulderWidth > 0.31;
 
     const feedback = [];
     if (lowLight) feedback.push('Lighting is low');
     if (isTooFar) feedback.push('Step closer to the camera');
     if (isTooClose) feedback.push('Step back a little');
     if (stability < 0.5) feedback.push('Try to hold still');
+    const aspectRatio = (this.video?.videoWidth && this.video?.videoHeight)
+      ? this.video.videoWidth / this.video.videoHeight
+      : 16 / 9;
 
     this.onFeedback?.({
       brightness,
@@ -109,6 +123,7 @@ export class PoseEngine {
       tooClose: isTooClose,
       tooFar: isTooFar,
       stability,
+      aspectRatio,
       messages: feedback,
       landmarks: smoothed
     });
@@ -119,12 +134,14 @@ export class PoseEngine {
       distanceScore: shoulderWidth,
       tooClose: isTooClose,
       tooFar: isTooFar,
-      stability
+      stability,
+      aspectRatio
     });
   }
 
   drawSkeleton(results) {
     const ctx = this.skeletonCtx;
+    if (!ctx || !this.skeletonCanvas) return;
     ctx.save();
     ctx.clearRect(0, 0, this.skeletonCanvas.width, this.skeletonCanvas.height);
 
@@ -152,12 +169,14 @@ export class PoseEngine {
 
   drawSilhouette(landmarks) {
     const ctx = this.skeletonCtx;
+    if (!ctx || !this.skeletonCanvas) return;
     ctx.save();
-    ctx.strokeStyle = 'rgba(0, 255, 255, 0.4)';
-    ctx.lineWidth = 3;
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.16)';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([8, 10]);
     ctx.beginPath();
 
-    const indices = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 23, 24, 25, 26, 27, 28];
+    const indices = [0, 11, 23, 25, 27];
     let started = false;
     for (const i of indices) {
       const p = landmarks[i];
@@ -171,8 +190,8 @@ export class PoseEngine {
         ctx.lineTo(x, y);
       }
     }
-    ctx.closePath();
     ctx.stroke();
+    ctx.setLineDash([]);
     ctx.restore();
   }
 
@@ -193,5 +212,14 @@ export class PoseEngine {
     } catch (e) {
       return 0;
     }
+  }
+
+  resizeCanvas() {
+    if (!this.skeletonCanvas) return;
+
+    const width = this.video?.videoWidth || 1280;
+    const height = this.video?.videoHeight || 720;
+    this.skeletonCanvas.width = width;
+    this.skeletonCanvas.height = height;
   }
 }

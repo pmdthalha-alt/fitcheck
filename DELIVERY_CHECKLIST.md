@@ -178,7 +178,7 @@ npm start
 python -m http.server 8000
 
 # Open browser
-http://localhost:8000
+http://localhost:5000
 ```
 
 ---
@@ -294,7 +294,7 @@ All files are complete and tested. To start:
 1. **Install**: `npm install`
 2. **Run backend**: `npm start`
 3. **Run frontend**: `python -m http.server 8000`
-4. **Open**: http://localhost:8000
+4. **Open**: http://localhost:5000
 5. **Allow camera**: Click allow
 6. **See magic**: Real-time pose & clothing detection!
 

@@ -1,172 +1,2043 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <title>FitCheck AI - Smart Scan</title>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FitVision | Guided Fit Scan</title>
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --bg: #07171c;
+      --bg-soft: rgba(8, 26, 31, 0.76);
+      --panel: rgba(10, 29, 35, 0.82);
+      --panel-strong: rgba(8, 22, 28, 0.92);
+      --line: rgba(163, 233, 226, 0.18);
+      --text: #eff8f5;
+      --muted: rgba(231, 243, 240, 0.72);
+      --teal: #90f5df;
+      --teal-strong: #4ce1cd;
+      --sand: #f6d38f;
+      --danger: #ff8d84;
+      --shadow: 0 24px 80px rgba(0, 0, 0, 0.35);
+      --radius-xl: 32px;
+      --radius-lg: 24px;
+      --radius-md: 18px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html,
     body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      height: 100vh;
-      background: #0a0a0a;
-      color: white;
-      overflow: hidden;
-    }
-    
-    /* Main Container */
-    #app { position: relative; width: 100vw; height: 100vh; display: flex; }
-    
-    /* Camera Layer */
-    .camera-layer {
-      position: absolute; top: 0; left: 0;
-      width: 100%; height: 100%;
-      z-index: 0;
-    }
-    
-    #video {
-      width: 100%; height: 100%;
-      object-fit: cover;
-      transform: scaleX(-1); /* Mirror effect */
+      min-height: 100%;
     }
 
-    #output {
-      position: absolute; top: 0; left: 0;
-      width: 100%; height: 100%;
+    body {
+      font-family: "Aptos", "Segoe UI Variable Text", "Trebuchet MS", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(246, 211, 143, 0.16), transparent 36%),
+        radial-gradient(circle at 85% 18%, rgba(76, 225, 205, 0.18), transparent 28%),
+        linear-gradient(135deg, #051217 0%, #092026 54%, #0f2630 100%);
+      overflow-x: hidden;
     }
 
-    /* Chat Interface (Right Panel) */
-    .chat-panel {
-      position: absolute;
-      right: 20px;
-      bottom: 20px;
-      width: 350px;
-      height: 500px;
-      background: rgba(10, 20, 30, 0.85);
-      backdrop-filter: blur(20px);
-      border: 1px solid rgba(0, 255, 204, 0.2);
-      border-radius: 20px;
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      background:
+        linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+      background-size: 42px 42px;
+      mask-image: radial-gradient(circle at center, black 42%, transparent 88%);
+      pointer-events: none;
+      opacity: 0.45;
+    }
+
+    .app-shell {
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: minmax(0, 1.65fr) minmax(360px, 430px);
+      gap: 24px;
+      padding: 24px;
+    }
+
+    .stage-panel,
+    .side-panel {
+      min-height: 0;
+    }
+
+    .stage-panel {
       display: flex;
       flex-direction: column;
-      overflow: hidden;
-      box-shadow: 0 10px 40px rgba(0,0,0,0.5);
-      z-index: 10;
-      transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      gap: 18px;
     }
 
-    .chat-header {
-      padding: 20px;
-      background: linear-gradient(90deg, rgba(0,255,204,0.1), transparent);
-      border-bottom: 1px solid rgba(255,255,255,0.1);
+    .hero-strip {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 16px;
+      padding: 18px 22px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-lg);
+      background: linear-gradient(135deg, rgba(8, 24, 30, 0.78), rgba(12, 35, 42, 0.72));
+      backdrop-filter: blur(20px);
+      box-shadow: var(--shadow);
+      animation: rise-in 700ms ease-out both;
+    }
+
+    .brand-copy {
+      max-width: 560px;
+    }
+
+    .eyebrow {
+      font-size: 0.78rem;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--sand);
+      margin-bottom: 10px;
+    }
+
+    h1,
+    h2,
+    h3 {
+      font-family: "Bahnschrift", "Aptos Display", "Franklin Gothic Medium", sans-serif;
+      letter-spacing: 0.01em;
+    }
+
+    h1 {
+      font-size: clamp(2rem, 4vw, 3.6rem);
+      line-height: 0.94;
+      max-width: 10ch;
+    }
+
+    .hero-copy {
+      margin-top: 10px;
+      max-width: 54ch;
+      color: var(--muted);
+      line-height: 1.55;
+    }
+
+    .hero-metrics {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 18px;
+      max-width: 720px;
+    }
+
+    .hero-metric {
+      padding: 14px 16px;
+      border-radius: 18px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.045);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+    }
+
+    .hero-metric span {
+      display: block;
+      font-size: 0.72rem;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--sand);
+      margin-bottom: 7px;
+    }
+
+    .hero-metric strong {
+      display: block;
+      font-size: 0.96rem;
+      line-height: 1.35;
+    }
+
+    .hero-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: flex-end;
+      align-self: stretch;
+      max-width: 250px;
+    }
+
+    .hero-tag {
+      padding: 10px 14px;
+      border-radius: 999px;
+      border: 1px solid rgba(246, 211, 143, 0.2);
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--muted);
+      font-size: 0.84rem;
+      white-space: nowrap;
+    }
+
+    .camera-card {
+      position: relative;
+      flex: 1;
+      min-height: 640px;
+      border-radius: var(--radius-xl);
+      border: 1px solid var(--line);
+      overflow: hidden;
+      background: linear-gradient(160deg, rgba(7, 21, 27, 0.88), rgba(8, 26, 32, 0.56));
+      box-shadow: var(--shadow);
+      animation: rise-in 820ms 80ms ease-out both;
+    }
+
+    .camera-card::before,
+    .camera-card::after {
+      content: "";
+      position: absolute;
+      pointer-events: none;
+      z-index: 1;
+      border-radius: 999px;
+      filter: blur(40px);
+      opacity: 0.5;
+    }
+
+    .camera-card::before {
+      width: 220px;
+      height: 220px;
+      top: -60px;
+      right: -40px;
+      background: rgba(76, 225, 205, 0.18);
+    }
+
+    .camera-card::after {
+      width: 260px;
+      height: 260px;
+      bottom: -120px;
+      left: -60px;
+      background: rgba(246, 211, 143, 0.14);
+    }
+
+    .scan-stage {
+      position: absolute;
+      inset: 0;
+    }
+
+    #video,
+    #skeleton,
+    #tryOnOverlay {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transform: scaleX(-1);
+    }
+
+    #video {
+      filter: saturate(1.08) contrast(1.05) brightness(0.92);
+      background: #071419;
+    }
+
+    #skeleton {
+      pointer-events: none;
+    }
+
+    #tryOnOverlay {
+      pointer-events: none;
+      z-index: 3;
+    }
+
+    #tryOnOverlay svg {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      overflow: visible;
+    }
+
+    .tryon-figure {
+      transform-box: fill-box;
+      transform-origin: center;
+      animation: tryon-breathe 4.8s ease-in-out infinite;
+    }
+
+    .tryon-body {
+      fill: url(#tryonFill);
+      fill-opacity: 1;
+      stroke: rgba(255, 255, 255, 0.78);
+      stroke-width: 3.5;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      filter: url(#tryonGlow);
+      opacity: 0.88;
+    }
+
+    .tryon-arm {
+      fill: none;
+      stroke: rgba(255, 255, 255, 0.56);
+      stroke-width: 3.2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      opacity: 0.8;
+    }
+
+    .tryon-connector {
+      fill: none;
+      stroke: rgba(255, 255, 255, 0.24);
+      stroke-width: 1.8;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      stroke-dasharray: 9 11;
+      opacity: 0.4;
+    }
+
+    .tryon-head {
+      fill: rgba(255, 255, 255, 0.06);
+      stroke: rgba(255, 255, 255, 0.62);
+      stroke-width: 3;
+      opacity: 0.9;
+    }
+
+    .stage-vignette {
+      position: absolute;
+      inset: 0;
+      z-index: 4;
+      background:
+        linear-gradient(180deg, rgba(4, 11, 14, 0.52) 0%, rgba(4, 11, 14, 0.08) 24%, rgba(4, 11, 14, 0.32) 100%),
+        radial-gradient(circle at center, transparent 34%, rgba(2, 8, 10, 0.4) 100%);
+      pointer-events: none;
+    }
+
+    .stage-top {
+      position: absolute;
+      top: 18px;
+      left: 18px;
+      right: 18px;
+      z-index: 6;
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: flex-start;
+    }
+
+    .stage-guide {
+      position: absolute;
+      left: 18px;
+      bottom: 18px;
+      z-index: 6;
+      width: min(360px, calc(100% - 140px));
+      padding: 16px 18px;
+      border-radius: 22px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: rgba(9, 24, 29, 0.72);
+      backdrop-filter: blur(18px);
+      box-shadow: var(--shadow);
+    }
+
+    .stage-guide p {
+      font-size: 0.76rem;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--sand);
+      margin-bottom: 12px;
+    }
+
+    .guide-chip-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .guide-chip {
+      padding: 9px 12px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      color: var(--muted);
+      font-size: 0.82rem;
+      white-space: nowrap;
+    }
+
+    .live-badge,
+    .mirror-badge {
+      padding: 10px 14px;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: rgba(8, 20, 25, 0.64);
+      backdrop-filter: blur(18px);
+      color: var(--muted);
+      font-size: 0.82rem;
+      display: inline-flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .live-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+      background: var(--sand);
+      box-shadow: 0 0 12px rgba(246, 211, 143, 0.9);
+      animation: pulse-dot 1.4s ease-in-out infinite;
+    }
+
+    .overlay-shell {
+      position: absolute;
+      inset: 0;
+      z-index: 5;
       display: flex;
       align-items: center;
+      justify-content: center;
+      pointer-events: none;
+    }
+
+    .focus-circle {
+      position: relative;
+      width: min(66vw, 520px);
+      aspect-ratio: 1 / 1.34;
+      border-radius: 999px;
+      border: 2px solid rgba(255, 255, 255, 0.1);
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.01)),
+        radial-gradient(circle at center, rgba(76, 225, 205, 0.05), transparent 60%);
+      box-shadow:
+        inset 0 0 0 1px rgba(255, 255, 255, 0.05),
+        0 0 0 40px rgba(255, 255, 255, 0.025);
+      transition: border-color 200ms ease, box-shadow 200ms ease, transform 250ms ease;
+    }
+
+    .focus-circle.ready {
+      border-color: rgba(144, 245, 223, 0.72);
+      box-shadow:
+        inset 0 0 0 1px rgba(144, 245, 223, 0.16),
+        0 0 0 40px rgba(144, 245, 223, 0.04),
+        0 0 50px rgba(76, 225, 205, 0.16);
+      transform: scale(1.012);
+    }
+
+    .alignment-ring {
+      --angle: 0deg;
+      position: absolute;
+      inset: -14px;
+      border-radius: inherit;
+      background: conic-gradient(from -90deg, var(--teal) 0deg, var(--teal-strong) var(--angle), rgba(255, 255, 255, 0.05) var(--angle), rgba(255, 255, 255, 0.05) 360deg);
+      -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 12px), black 0);
+      mask: radial-gradient(farthest-side, transparent calc(100% - 12px), black 0);
+      opacity: 0.9;
+    }
+
+    .zone {
+      position: absolute;
+      left: 12%;
+      right: 12%;
+      border-radius: 999px;
+      opacity: 0;
+      transition: opacity 180ms ease, transform 180ms ease;
+      border: 1px solid rgba(144, 245, 223, 0.6);
+      box-shadow: 0 0 24px rgba(76, 225, 205, 0.24);
+      background: rgba(76, 225, 205, 0.08);
+    }
+
+    .zone-shoulders {
+      top: 13%;
+      height: 18%;
+    }
+
+    .zone-arms {
+      top: 33%;
+      height: 22%;
+    }
+
+    .zone-legs {
+      bottom: 9%;
+      height: 22%;
+    }
+
+    .focus-circle.highlight-shoulders .zone-shoulders,
+    .focus-circle.highlight-arms .zone-arms,
+    .focus-circle.highlight-legs .zone-legs {
+      opacity: 1;
+      transform: scale(1.02);
+    }
+
+    .scanBeam {
+      position: absolute;
+      left: 9%;
+      right: 9%;
+      top: 18%;
+      height: 10px;
+      border-radius: 999px;
+      background: linear-gradient(90deg, transparent, rgba(144, 245, 223, 0.18), rgba(144, 245, 223, 0.95), rgba(144, 245, 223, 0.18), transparent);
+      box-shadow: 0 0 18px rgba(144, 245, 223, 0.7);
+      opacity: 0;
+    }
+
+    .scanBeam.active {
+      opacity: 1;
+      animation: beam-sweep 1.5s linear infinite;
+    }
+
+    .scanWave {
+      position: absolute;
+      inset: 11%;
+      border-radius: inherit;
+      border: 1px solid rgba(144, 245, 223, 0.75);
+      opacity: 0;
+    }
+
+    .scanWave.active {
+      animation: wave-pulse 1.6s ease-out infinite;
+    }
+
+    .circle-core {
+      position: absolute;
+      inset: 18%;
+      border-radius: inherit;
+      border: 1px dashed rgba(255, 255, 255, 0.16);
+    }
+
+    .tap-hint {
+      position: absolute;
+      left: 50%;
+      bottom: -24px;
+      transform: translate(-50%, 12px);
+      padding: 10px 14px;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      background: rgba(9, 24, 29, 0.78);
+      backdrop-filter: blur(20px);
+      color: var(--muted);
+      font-size: 0.8rem;
+      opacity: 0;
+      transition: opacity 180ms ease, transform 180ms ease;
+      white-space: nowrap;
+    }
+
+    .tap-hint.active {
+      opacity: 1;
+      transform: translate(-50%, 0);
+    }
+
+    .hud-corner {
+      position: absolute;
+      right: 18px;
+      bottom: 18px;
+      z-index: 6;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 12px;
+      pointer-events: none;
+    }
+
+    .alignment-chip,
+    .direction-badge,
+    .countdown-ring {
+      border-radius: 22px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: rgba(9, 24, 29, 0.72);
+      backdrop-filter: blur(18px);
+      box-shadow: var(--shadow);
+    }
+
+    .alignment-chip {
+      min-width: 138px;
+      padding: 12px 16px;
+    }
+
+    .alignment-chip span {
+      display: block;
+      font-size: 0.72rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 5px;
+    }
+
+    #alignmentScore {
+      font-size: 1.7rem;
+      font-weight: 700;
+      color: var(--teal);
+    }
+
+    .direction-badge {
+      width: 118px;
+      min-height: 72px;
+      display: grid;
+      place-items: center;
+      padding: 10px 12px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      text-align: center;
+      line-height: 1.15;
+      opacity: 0;
+      transform: translateY(8px) scale(0.96);
+      transition: opacity 180ms ease, transform 180ms ease, color 180ms ease;
+    }
+
+    .direction-badge.active {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+
+    .direction-badge.good {
+      color: var(--teal);
+    }
+
+    .direction-badge.warning {
+      color: var(--sand);
+    }
+
+    .countdown-ring {
+      width: 92px;
+      height: 92px;
+      display: grid;
+      place-items: center;
+      font-size: 2.4rem;
+      font-weight: 700;
+      color: var(--sand);
+      opacity: 0;
+      transform: scale(0.86);
+      transition: opacity 180ms ease, transform 180ms ease;
+    }
+
+    .countdown-ring.active {
+      opacity: 1;
+      transform: scale(1);
+    }
+
+    .side-panel {
+      display: grid;
+      grid-template-rows: auto auto auto 1fr;
+      gap: 18px;
+    }
+
+    .panel-card {
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--line);
+      background: var(--panel);
+      backdrop-filter: blur(22px);
+      box-shadow: var(--shadow);
+      padding: 20px;
+      animation: rise-in 760ms ease-out both;
+    }
+
+    .panel-card:nth-child(2) {
+      animation-delay: 80ms;
+    }
+
+    .panel-card:nth-child(3) {
+      animation-delay: 160ms;
+    }
+
+    .card-label {
+      font-size: 0.74rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--sand);
+      margin-bottom: 8px;
+    }
+
+    .status-pill {
+      padding: 12px 14px;
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      font-weight: 600;
+      margin-bottom: 12px;
+    }
+
+    .instruction {
+      color: var(--muted);
+      line-height: 1.55;
+      min-height: 3.4em;
+      transition: color 180ms ease, transform 180ms ease;
+    }
+
+    .instruction.speaking {
+      color: var(--text);
+      transform: translateY(-1px);
+    }
+
+    .readiness-strip {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 16px;
+    }
+
+    .readiness-chip {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      padding: 11px 12px;
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      color: var(--muted);
+      font-size: 0.82rem;
+    }
+
+    .readiness-chip strong {
+      font-size: 0.75rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    .readiness-chip.ok {
+      border-color: rgba(144, 245, 223, 0.28);
+      background: rgba(144, 245, 223, 0.09);
+      color: var(--text);
+    }
+
+    .readiness-chip.ok strong {
+      color: var(--teal);
+    }
+
+    .readiness-chip.warn strong {
+      color: var(--sand);
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    .stat-box {
+      padding: 14px;
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .stat-box span {
+      display: block;
+      font-size: 0.78rem;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+
+    .stat-box strong {
+      font-size: 1rem;
+      font-weight: 600;
+    }
+
+    .height-wrap {
+      margin-top: 16px;
+      display: grid;
+      gap: 8px;
+    }
+
+    .height-wrap label {
+      font-size: 0.82rem;
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      color: var(--muted);
+    }
+
+    .height-wrap input {
+      width: 100%;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(7, 19, 24, 0.9);
+      color: var(--text);
+      border-radius: 16px;
+      padding: 14px 16px;
+      outline: none;
+      font-size: 1rem;
+    }
+
+    .control-panel {
+      margin-top: 16px;
+      display: grid;
+      gap: 10px;
+    }
+
+    .mini-label {
+      font-size: 0.74rem;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--sand);
+    }
+
+    .toggle-grid {
+      display: grid;
+      gap: 10px;
+    }
+
+    .toggle-card {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 13px 14px;
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      cursor: pointer;
+    }
+
+    .toggle-card input {
+      width: 18px;
+      height: 18px;
+      margin-top: 2px;
+      accent-color: var(--teal-strong);
+      flex: 0 0 auto;
+    }
+
+    .toggle-copy span {
+      display: block;
+      font-size: 0.94rem;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .toggle-copy small {
+      display: block;
+      margin-top: 4px;
+      color: var(--muted);
+      line-height: 1.45;
+      font-size: 0.82rem;
+    }
+
+    .mini-select,
+    .mini-range {
+      width: 100%;
+      margin-top: 8px;
+    }
+
+    .mini-select {
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(7, 19, 24, 0.92);
+      color: var(--text);
+      border-radius: 14px;
+      padding: 12px 14px;
+      outline: none;
+    }
+
+    .slider-grid {
+      display: grid;
+      gap: 10px;
+    }
+
+    .slider-card {
+      padding: 12px 14px;
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      display: grid;
+      gap: 8px;
+    }
+
+    .slider-card header {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: baseline;
+    }
+
+    .slider-card header strong {
+      color: var(--sand);
+      font-size: 0.78rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    .slider-card span {
+      color: var(--text);
+      font-size: 0.92rem;
+      font-weight: 600;
+    }
+
+    .slider-card small {
+      color: var(--muted);
+      line-height: 1.45;
+      font-size: 0.8rem;
+    }
+
+    .slider-card input[type="range"] {
+      width: 100%;
+      accent-color: var(--teal-strong);
+    }
+
+    .guide-launch {
+      margin-top: 10px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .guide-launch button {
+      flex: 1 1 180px;
+    }
+
+    .progress-wrap {
+      margin-top: 18px;
+    }
+
+    .progress-track {
+      width: 100%;
+      height: 12px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.07);
+      overflow: hidden;
+    }
+
+    .progress-bar {
+      width: 0;
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, var(--sand), var(--teal));
+      box-shadow: 0 0 18px rgba(144, 245, 223, 0.32);
+      transition: width 180ms ease;
+    }
+
+    .step-tracker {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 16px;
+    }
+
+    .step {
+      padding: 12px 10px;
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.035);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      color: var(--muted);
+      text-align: center;
+      font-size: 0.84rem;
+      transition: transform 180ms ease, border-color 180ms ease, background 180ms ease;
+    }
+
+    .step.active {
+      transform: translateY(-2px);
+      border-color: rgba(246, 211, 143, 0.4);
+      background: rgba(246, 211, 143, 0.11);
+      color: var(--text);
+    }
+
+    .step.completed {
+      border-color: rgba(144, 245, 223, 0.3);
+      background: rgba(144, 245, 223, 0.08);
+      color: var(--teal);
+    }
+
+    .button-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    .button-note {
+      margin-top: 12px;
+      color: var(--muted);
+      font-size: 0.84rem;
+      line-height: 1.5;
+    }
+
+    button {
+      appearance: none;
+      border: none;
+      border-radius: 16px;
+      padding: 13px 16px;
+      cursor: pointer;
+      font: inherit;
+      transition: transform 160ms ease, box-shadow 160ms ease, opacity 160ms ease, background 160ms ease;
+    }
+
+    button:hover:not(:disabled) {
+      transform: translateY(-1px);
+    }
+
+    button:disabled {
+      cursor: not-allowed;
+      opacity: 0.48;
+    }
+
+    .primary-btn {
+      background: linear-gradient(135deg, var(--sand), #f3b982);
+      color: #0c1214;
+      box-shadow: 0 14px 26px rgba(243, 185, 130, 0.24);
+      font-weight: 700;
+    }
+
+    .primary-btn.ready {
+      background: linear-gradient(135deg, #a7f6dc, #f6d38f);
+      box-shadow:
+        0 0 0 1px rgba(144, 245, 223, 0.3),
+        0 18px 38px rgba(76, 225, 205, 0.2);
+    }
+
+    .secondary-btn {
+      background: rgba(255, 255, 255, 0.06);
+      color: var(--text);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .ghost-btn {
+      background: rgba(76, 225, 205, 0.1);
+      color: var(--teal);
+      border: 1px solid rgba(76, 225, 205, 0.24);
+    }
+
+    .glow {
+      box-shadow: 0 0 0 1px rgba(144, 245, 223, 0.24), 0 0 30px rgba(76, 225, 205, 0.18);
+    }
+
+    .results-card {
+      transform: translateY(0);
+      opacity: 0.8;
+      transition: transform 220ms ease, opacity 220ms ease, border-color 220ms ease;
+    }
+
+    .results-card.is-visible {
+      opacity: 1;
+      transform: translateY(-2px);
+      border-color: rgba(144, 245, 223, 0.28);
+    }
+
+    .results-copy {
+      color: var(--muted);
+      line-height: 1.5;
+      margin-bottom: 14px;
+    }
+
+    .quality-pill {
+      margin-bottom: 14px;
+      color: var(--sand);
+    }
+
+    .measurement-meta {
+      margin-bottom: 14px;
+      color: var(--muted);
+      font-size: 0.9rem;
+      line-height: 1.5;
+    }
+
+    .accuracy-panel {
+      margin-bottom: 14px;
+      padding: 14px;
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.035);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+    }
+
+    .accuracy-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+
+    .accuracy-head span {
+      color: var(--muted);
+      font-size: 0.78rem;
+    }
+
+    .accuracy-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .accuracy-chip {
+      padding: 8px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text);
+      font-size: 0.8rem;
+      display: inline-flex;
+      gap: 6px;
+      align-items: center;
+    }
+
+    .accuracy-chip small {
+      color: var(--muted);
+      font-size: 0.72rem;
+    }
+
+    .accuracy-note {
+      margin-top: 10px;
+      color: var(--muted);
+      font-size: 0.8rem;
+      line-height: 1.4;
+    }
+
+    .accuracy-warnings {
+      margin-top: 12px;
+      display: grid;
+      gap: 8px;
+    }
+
+    .accuracy-warnings span {
+      font-size: 0.74rem;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--sand);
+    }
+
+    .accuracy-warning-item {
+      padding: 10px 12px;
+      border-radius: 14px;
+      border: 1px solid rgba(255, 141, 132, 0.16);
+      background: rgba(255, 141, 132, 0.08);
+      color: var(--text);
+      font-size: 0.8rem;
+      line-height: 1.45;
+    }
+
+    .summary-grid {
+      display: grid;
+      gap: 10px;
+    }
+
+    .summary-row {
+      padding: 12px 14px;
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.045);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+    }
+
+    .measurement-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .measurement-card {
+      padding: 14px;
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+    }
+
+    .measurement-card span {
+      display: block;
+      color: var(--muted);
+      font-size: 0.78rem;
+      margin-bottom: 6px;
+    }
+
+    .measurement-card strong {
+      display: block;
+      font-size: 1rem;
+      line-height: 1.35;
+    }
+
+    .measurement-card small {
+      display: block;
+      margin-top: 6px;
+      color: var(--muted);
+      font-size: 0.72rem;
+      line-height: 1.3;
+    }
+
+    .breakdown-grid,
+    .insight-list,
+    .comparison-box {
+      margin-top: 14px;
+    }
+
+    .breakdown-grid:empty,
+    .insight-list:empty,
+    .comparison-box:empty {
+      display: none;
+    }
+
+    .breakdown-grid {
+      display: grid;
+      gap: 10px;
+    }
+
+    .breakdown-row {
+      padding: 12px 14px;
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+    }
+
+    .breakdown-row header {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 9px;
+      font-size: 0.82rem;
+      color: var(--muted);
+    }
+
+    .breakdown-row strong {
+      color: var(--text);
+      font-size: 0.85rem;
+    }
+
+    .breakdown-track {
+      width: 100%;
+      height: 10px;
+      overflow: hidden;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    .breakdown-fill {
+      width: var(--value, 0%);
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, var(--sand), var(--teal));
+      box-shadow: 0 0 18px rgba(144, 245, 223, 0.2);
+    }
+
+    .insight-item,
+    .comparison-box {
+      padding: 14px;
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+    }
+
+    .insight-item {
+      color: var(--text);
+      line-height: 1.55;
+    }
+
+    .comparison-box {
+      color: var(--muted);
+      line-height: 1.55;
+    }
+
+    .comparison-box strong {
+      display: block;
+      color: var(--sand);
+      font-size: 0.78rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+
+    .comparison-deltas {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .comparison-pill {
+      padding: 10px 12px;
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      color: var(--text);
+      font-size: 0.84rem;
+    }
+
+    .analytics-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .analytics-box {
+      padding: 14px;
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+    }
+
+    .analytics-box span {
+      display: block;
+      color: var(--muted);
+      font-size: 0.78rem;
+      margin-bottom: 6px;
+    }
+
+    .analytics-box strong {
+      display: block;
+      font-size: 1rem;
+      color: var(--text);
+    }
+
+    .report-actions {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .report-actions button {
+      width: 100%;
+    }
+
+    .report-note {
+      margin-top: 10px;
+      color: var(--muted);
+      font-size: 0.84rem;
+      line-height: 1.45;
+    }
+
+    .guide-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 30;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .guide-modal.active {
+      display: flex;
+    }
+
+    .guide-backdrop {
+      position: absolute;
+      inset: 0;
+      background: rgba(2, 8, 10, 0.72);
+      backdrop-filter: blur(18px);
+    }
+
+    .guide-dialog {
+      position: relative;
+      width: min(860px, 100%);
+      border-radius: 28px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: linear-gradient(180deg, rgba(10, 29, 35, 0.98), rgba(8, 22, 28, 0.96));
+      box-shadow: 0 30px 120px rgba(0, 0, 0, 0.55);
+      padding: 24px;
+      z-index: 1;
+      overflow: hidden;
+    }
+
+    .guide-dialog::before {
+      content: "";
+      position: absolute;
+      inset: -20%;
+      background: radial-gradient(circle at top right, rgba(76, 225, 205, 0.18), transparent 32%), radial-gradient(circle at 10% 90%, rgba(246, 211, 143, 0.12), transparent 30%);
+      pointer-events: none;
+    }
+
+    .guide-head {
+      position: relative;
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      align-items: flex-start;
+      margin-bottom: 18px;
+    }
+
+    .guide-head h2 {
+      font-size: clamp(1.5rem, 3vw, 2.4rem);
+      margin-top: 4px;
+    }
+
+    .guide-counter {
+      padding: 10px 14px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      color: var(--sand);
+      font-size: 0.8rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .guide-body {
+      position: relative;
+      color: var(--muted);
+      line-height: 1.6;
+      max-width: 70ch;
+      margin-bottom: 18px;
+    }
+
+    .guide-cards {
+      position: relative;
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
       gap: 12px;
     }
 
-    .bot-avatar {
-      width: 40px; height: 40px;
-      background: linear-gradient(135deg, #00ffcc, #0099ff);
-      border-radius: 50%;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 20px;
-      box-shadow: 0 0 15px rgba(0,255,204,0.4);
+    .guide-card {
+      padding: 16px;
+      border-radius: 18px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.04);
     }
 
-    .bot-info h3 { font-size: 16px; color: white; }
-    .bot-info p { font-size: 12px; color: #00ffcc; }
+    .guide-card span {
+      display: block;
+      color: var(--sand);
+      font-size: 0.72rem;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
 
-    .chat-messages {
-      flex: 1;
-      padding: 20px;
-      overflow-y: auto;
+    .guide-card strong {
+      display: block;
+      color: var(--text);
+      line-height: 1.45;
+      font-size: 0.96rem;
+    }
+
+    .guide-actions {
+      position: relative;
+      margin-top: 20px;
       display: flex;
-      flex-direction: column;
-      gap: 15px;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
     }
 
-    .message {
-      max-width: 85%;
-      padding: 12px 16px;
-      border-radius: 12px;
-      font-size: 14px;
-      line-height: 1.4;
-      animation: slideIn 0.3s ease-out;
-    }
-
-    .message.bot {
-      background: rgba(255,255,255,0.1);
-      border-top-left-radius: 2px;
-      align-self: flex-start;
-      border-left: 3px solid #00ffcc;
-    }
-
-    .message.user {
-      background: rgba(0, 102, 255, 0.3);
-      border-top-right-radius: 2px;
-      align-self: flex-end;
-      color: white;
-    }
-    
-    .chat-actions {
-      padding: 20px;
+    .guide-actions .left,
+    .guide-actions .right {
       display: flex;
       gap: 10px;
       flex-wrap: wrap;
     }
 
-    .action-btn {
-      padding: 8px 16px;
-      background: transparent;
-      border: 1px solid rgba(0,255,204,0.4);
-      color: #00ffcc;
-      border-radius: 20px;
-      cursor: pointer;
-      font-size: 12px;
-      transition: 0.3s;
+    .guide-actions button {
+      min-width: 120px;
     }
 
-    .action-btn:hover {
-      background: rgba(0,255,204,0.1);
-      border-color: #00ffcc;
+    .coach-card {
+      min-height: 260px;
+      display: flex;
+      flex-direction: column;
     }
 
-    @keyframes slideIn {
-      from { opacity: 0; transform: translateY(10px); }
-      to { opacity: 1; transform: translateY(0); }
+    .coach-feed {
+      display: grid;
+      gap: 10px;
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+
+    .coach-feed::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    .coach-feed::-webkit-scrollbar-thumb {
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.12);
+    }
+
+    .coach-entry {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+    }
+
+    .coach-avatar {
+      width: 34px;
+      height: 34px;
+      border-radius: 999px;
+      display: grid;
+      place-items: center;
+      flex: 0 0 auto;
+      background: linear-gradient(135deg, rgba(246, 211, 143, 0.2), rgba(144, 245, 223, 0.16));
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: var(--sand);
+      font-size: 0.95rem;
+    }
+
+    .coach-bubble {
+      flex: 1;
+      padding: 12px 14px;
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.045);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+    }
+
+    .coach-bubble strong {
+      display: block;
+      font-size: 0.82rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--sand);
+      margin-bottom: 6px;
+    }
+
+    .coach-bubble p {
+      color: var(--text);
+      line-height: 1.55;
+      font-size: 0.93rem;
+    }
+
+    .history-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .history-head button {
+      padding: 10px 12px;
+      border-radius: 12px;
+      background: rgba(255, 141, 132, 0.12);
+      color: #ffd4d0;
+      border: 1px solid rgba(255, 141, 132, 0.18);
+    }
+
+    .history-list {
+      list-style: none;
+      display: grid;
+      gap: 10px;
+      max-height: 100%;
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+
+    .history-list::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    .history-list::-webkit-scrollbar-thumb {
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.12);
+    }
+
+    .history-item,
+    .history-empty {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 14px;
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+    }
+
+    .history-empty {
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    .history-copy {
+      display: grid;
+      gap: 4px;
+    }
+
+    .history-copy strong {
+      font-size: 0.95rem;
+    }
+
+    .history-copy span {
+      color: var(--muted);
+      font-size: 0.84rem;
+    }
+
+    .history-item button {
+      align-self: center;
+      padding: 10px 14px;
+      border-radius: 12px;
+      background: rgba(144, 245, 223, 0.11);
+      color: var(--teal);
+      border: 1px solid rgba(144, 245, 223, 0.18);
+    }
+
+    @keyframes rise-in {
+      from {
+        opacity: 0;
+        transform: translateY(16px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes pulse-dot {
+      0%,
+      100% {
+        transform: scale(1);
+        opacity: 1;
+      }
+      50% {
+        transform: scale(0.72);
+        opacity: 0.54;
+      }
+    }
+
+    @keyframes beam-sweep {
+      0% {
+        transform: translateY(0);
+      }
+      100% {
+        transform: translateY(260px);
+      }
+    }
+
+    @keyframes wave-pulse {
+      0% {
+        opacity: 0.42;
+        transform: scale(0.92);
+      }
+      100% {
+        opacity: 0;
+        transform: scale(1.06);
+      }
+    }
+
+    @keyframes tryon-breathe {
+      0%,
+      100% {
+        transform: translateY(0) scale(1);
+      }
+      50% {
+        transform: translateY(-1.5px) scale(1.008);
+      }
+    }
+
+    @media (max-width: 1180px) {
+      .app-shell {
+        grid-template-columns: 1fr;
+      }
+
+      .side-panel {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        grid-template-rows: auto auto auto;
+        align-items: start;
+      }
+
+      .history-card {
+        grid-column: 1 / -1;
+        min-height: 260px;
+      }
+
+      .camera-card {
+        min-height: 560px;
+      }
+    }
+
+    @media (max-width: 760px) {
+      .app-shell {
+        padding: 14px;
+        gap: 14px;
+      }
+
+      .hero-strip {
+        flex-direction: column;
+      }
+
+      .hero-tags {
+        justify-content: flex-start;
+        max-width: none;
+      }
+
+      .hero-metrics {
+        grid-template-columns: 1fr;
+      }
+
+      .camera-card {
+        min-height: 430px;
+      }
+
+      .focus-circle {
+        width: min(84vw, 420px);
+      }
+
+      .stage-top {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .side-panel {
+        grid-template-columns: 1fr;
+      }
+
+      .button-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .stats-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .measurement-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .comparison-deltas,
+      .analytics-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .report-actions {
+        grid-template-columns: 1fr;
+      }
+
+      .guide-cards {
+        grid-template-columns: 1fr;
+      }
+
+      .guide-head,
+      .guide-actions {
+        flex-direction: column;
+      }
+
+      .guide-actions .left,
+      .guide-actions .right {
+        width: 100%;
+      }
+
+      .guide-actions button,
+      .guide-launch button {
+        width: 100%;
+      }
+
+      .step-tracker {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .history-item {
+        flex-direction: column;
+      }
+
+      .history-item button {
+        width: 100%;
+      }
+
+      .stage-guide {
+        width: calc(100% - 36px);
+      }
+
+      .guide-chip {
+        white-space: normal;
+      }
+
+      .tap-hint {
+        white-space: normal;
+        width: min(240px, 72vw);
+        text-align: center;
+      }
     }
   </style>
 </head>
 <body>
-  <div id="app">
-    <!-- Layer 1: Camera & Visualization -->
-    <div class="camera-layer">
-      <video id="video" autoplay muted playsinline></video>
-      <canvas id="output"></canvas>
-    </div>
-    
-    <!-- Layer 2: Chat Interface -->
-    <div class="chat-panel" id="chatPanel">
-      <div class="chat-header">
-        <div class="bot-avatar">🤖</div>
-        <div class="bot-info">
-          <h3>FitBot AI</h3>
-          <p>Scanning Assistant</p>
+  <main class="app-shell">
+    <section class="stage-panel">
+      <header class="hero-strip">
+        <div class="brand-copy">
+          <p class="eyebrow">Guided Scanner</p>
+          <h1>Body scan that feels coached, not confusing.</h1>
+          <p class="hero-copy">
+            FitVision gives you a live pose guide, a four-step capture flow, and a cleaner fit summary with history and export tools built in.
+          </p>
+          <div class="hero-metrics">
+            <div class="hero-metric">
+              <span>Scan Flow</span>
+              <strong>Front, rotate right, hold side, finish left.</strong>
+            </div>
+            <div class="hero-metric">
+              <span>Best Input</span>
+              <strong>Good light, feet visible, shoulders relaxed.</strong>
+            </div>
+            <div class="hero-metric">
+              <span>After Capture</span>
+              <strong>Review fit, export JSON, or reload saved scans.</strong>
+            </div>
+          </div>
         </div>
-      </div>
+        <div class="hero-tags" aria-hidden="true">
+          <span class="hero-tag">Live skeleton overlay</span>
+          <span class="hero-tag">4-step guided capture</span>
+          <span class="hero-tag">Recent scan history</span>
+        </div>
+      </header>
 
-      <div class="chat-messages" id="chatMessages">
-        <!-- Messages will appear here -->
-      </div>
+      <section class="camera-card">
+        <div class="scan-stage" id="overlay" data-state="idle">
+          <video id="video" autoplay muted playsinline></video>
+          <canvas id="skeleton"></canvas>
+          <div id="tryOnOverlay"></div>
+          <div class="stage-vignette"></div>
 
-      <div class="chat-actions" id="chatActions">
-        <button class="action-btn" onclick="startScan()">Start Scanning</button>
-      </div>
-    </div>
-  </div>
+          <div class="stage-top">
+            <div class="live-badge">
+              <span class="live-dot"></span>
+              Live body scan
+            </div>
+            <div class="mirror-badge">Mirror preview enabled</div>
+          </div>
+
+          <div class="stage-guide" aria-hidden="true">
+            <p>Best Results</p>
+            <div class="guide-chip-row">
+              <span class="guide-chip">Keep your full body in frame</span>
+              <span class="guide-chip">Use even room lighting</span>
+              <span class="guide-chip">Pause briefly for each capture</span>
+            </div>
+          </div>
+
+          <div class="overlay-shell">
+            <div class="focus-circle" id="circle">
+              <div class="alignment-ring" id="alignmentRing"></div>
+              <div class="zone zone-shoulders"></div>
+              <div class="zone zone-arms"></div>
+              <div class="zone zone-legs"></div>
+              <div class="scanBeam"></div>
+              <div class="scanWave"></div>
+              <div class="circle-core"></div>
+              <div class="tap-hint" id="tapHint">Tap start if auto-scan does not begin.</div>
+            </div>
+          </div>
+
+          <div class="hud-corner">
+            <div class="alignment-chip">
+              <span>Alignment</span>
+              <strong id="alignmentScore">0%</strong>
+            </div>
+            <div class="direction-badge" id="direction" aria-live="polite"></div>
+            <div class="countdown-ring" id="countdown" aria-live="assertive"></div>
+          </div>
+        </div>
+      </section>
+    </section>
+
+    <aside class="side-panel">
+      <section class="panel-card">
+        <p class="card-label">Live Guidance</p>
+        <div class="status-pill" id="status">Starting camera...</div>
+        <p class="instruction" id="instruction">Please allow camera access and stand in the circle.</p>
+
+        <div class="readiness-strip" id="readinessStrip">
+          <div class="readiness-chip warn" id="frameCheck"><span>Frame</span><strong>Wait</strong></div>
+          <div class="readiness-chip warn" id="distanceCheck"><span>Distance</span><strong>Wait</strong></div>
+          <div class="readiness-chip warn" id="lightCheck"><span>Light</span><strong>Wait</strong></div>
+          <div class="readiness-chip warn" id="stabilityCheck"><span>Steady</span><strong>Wait</strong></div>
+        </div>
+
+        <div class="stats-grid">
+          <div class="stat-box">
+            <span>Confidence</span>
+            <strong id="confidence">Confidence: 0%</strong>
+          </div>
+          <div class="stat-box">
+            <span>Current Step</span>
+            <strong id="stepInfo">Step 0 / 4</strong>
+          </div>
+        </div>
+
+        <div class="height-wrap">
+          <label for="heightInput">Height Calibration</label>
+          <input id="heightInput" type="number" min="120" max="230" step="1" placeholder="Enter height in cm">
+        </div>
+
+        <div class="control-panel">
+          <p class="mini-label">Smart Controls</p>
+          <div class="toggle-grid">
+            <label class="toggle-card" for="voiceCoachToggle">
+              <input id="voiceCoachToggle" type="checkbox" checked>
+              <div class="toggle-copy">
+                <span>Voice Coach</span>
+                <small>Speak live prompts while you move through each scan step.</small>
+              </div>
+            </label>
+            <label class="toggle-card" for="autoStartToggle">
+              <input id="autoStartToggle" type="checkbox" checked>
+              <div class="toggle-copy">
+                <span>Auto Start</span>
+                <small>Begin scanning automatically when your body is framed and steady.</small>
+              </div>
+            </label>
+            <label class="toggle-card" for="audioCuesToggle">
+              <input id="audioCuesToggle" type="checkbox" checked>
+              <div class="toggle-copy">
+                <span>Audio Cues</span>
+                <small>Play the short beep when the app locks alignment or captures a step.</small>
+              </div>
+            </label>
+          </div>
+          <div class="guide-launch">
+            <button class="ghost-btn" id="guideOpenBtn" type="button">Open Calibration Wizard</button>
+            <button class="secondary-btn" id="guideResetBtn" type="button">Run Again</button>
+          </div>
+          <div class="slider-grid">
+            <label class="slider-card">
+              <header>
+                <span>Global Scale</span>
+                <strong id="globalScaleValue">0%</strong>
+              </header>
+              <input class="mini-range" id="globalScaleBias" type="range" min="-6" max="6" step="1" value="0">
+              <small>Use this to nudge all measurements up or down together after a test scan.</small>
+            </label>
+            <label class="slider-card">
+              <header>
+                <span>Upper Body</span>
+                <strong id="upperBiasValue">0%</strong>
+              </header>
+              <input class="mini-range" id="upperBias" type="range" min="-6" max="6" step="1" value="0">
+              <small>Applies to shoulders, sleeves, and torso length when the top half needs a tune-up.</small>
+            </label>
+            <label class="slider-card">
+              <header>
+                <span>Lower Body</span>
+                <strong id="lowerBiasValue">0%</strong>
+              </header>
+              <input class="mini-range" id="lowerBias" type="range" min="-6" max="6" step="1" value="0">
+              <small>Useful for inseam, leg length, and hip correction when pants feel off.</small>
+            </label>
+            <label class="slider-card">
+              <header>
+                <span>Posture Bias</span>
+                <strong id="postureBiasValue">0%</strong>
+              </header>
+              <input class="mini-range" id="postureBias" type="range" min="-6" max="6" step="1" value="0">
+              <small>Helps compensate when the scan was slightly rigid or relaxed.</small>
+            </label>
+          </div>
+          <label class="slider-card" style="margin-top: 4px;">
+            <header>
+              <span>Garment Focus</span>
+              <strong>Fit Style</strong>
+            </header>
+            <select class="mini-select" id="garmentFocus">
+              <option value="tee">Tee / T-Shirt</option>
+              <option value="shirt">Button Shirt</option>
+              <option value="hoodie">Hoodie</option>
+              <option value="jacket">Jacket</option>
+              <option value="jeans">Jeans</option>
+              <option value="trousers">Trousers</option>
+              <option value="activewear">Activewear</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="progress-wrap" id="progress">
+          <div class="progress-track">
+            <div class="progress-bar"></div>
+          </div>
+        </div>
+
+        <div class="step-tracker" id="stepTracker">
+          <div class="step active">Front</div>
+          <div class="step">Right</div>
+          <div class="step">Side</div>
+          <div class="step">Left</div>
+        </div>
+
+        <div class="button-grid">
+          <button class="primary-btn" id="scanBtn" type="button">Start Guided Scan</button>
+          <button class="secondary-btn" id="restartStepBtn" type="button">Restart Step</button>
+          <button class="secondary-btn" id="retryBtn" type="button">Reset Scan</button>
+          <button class="ghost-btn" id="exportBtn" type="button">Export JSON</button>
+          <button class="secondary-btn" id="importBtn" type="button">Import Scan</button>
+        </div>
+        <p class="button-note" id="buttonNote">Start unlocks as soon as your full body is visible and steady.</p>
+        <input id="importInput" type="file" accept=".json,application/json" hidden>
+      </section>
+
+      <section class="panel-card coach-card">
+        <p class="card-label">Coach Chat</p>
+        <h2>Live Pose Coach</h2>
+        <p class="results-copy">I will keep telling you what to fix while you move, hold, or rotate.</p>
+        <div class="coach-feed" id="coachFeed"></div>
+      </section>
+
+      <section class="panel-card results-card" id="success">
+        <p class="card-label">Latest Scan</p>
+        <h2>Fit Snapshot</h2>
+        <p class="results-copy" id="successSubtitle">Complete a guided scan to unlock your fit summary.</p>
+        <div class="quality-pill" id="quality"></div>
+        <div class="measurement-meta" id="measurementMeta"></div>
+        <div class="accuracy-panel" id="accuracyPanel"></div>
+        <div class="summary-grid" id="summary"></div>
+        <div class="measurement-grid" id="measurementList"></div>
+        <div class="breakdown-grid" id="qualityBreakdown"></div>
+        <div class="insight-list" id="qualityReasons"></div>
+        <div class="insight-list" id="fitInsights"></div>
+        <div class="insight-list" id="garmentGuidance"></div>
+        <div class="comparison-box" id="comparisonBox"></div>
+        <div class="report-actions">
+          <button class="secondary-btn" id="copyReportBtn" type="button">Copy Report</button>
+          <button class="ghost-btn" id="shareReportBtn" type="button">Share Report</button>
+          <button class="secondary-btn" id="downloadReportBtn" type="button">Download Report</button>
+        </div>
+        <p class="report-note" id="reportNote">A plain-language report can be copied, shared, or downloaded after each scan.</p>
+      </section>
+
+      <section class="panel-card">
+        <p class="card-label">Session Stats</p>
+        <h2>Scan Analytics</h2>
+        <p class="results-copy">Track how often you scan, how stable the sessions are, and how many saved records you have.</p>
+        <div class="analytics-grid">
+          <div class="analytics-box">
+            <span>Attempts</span>
+            <strong id="analyticsAttempts">0</strong>
+          </div>
+          <div class="analytics-box">
+            <span>Success Rate</span>
+            <strong id="analyticsSuccessRate">0%</strong>
+          </div>
+          <div class="analytics-box">
+            <span>Average Time</span>
+            <strong id="analyticsAverageTime">0.0s</strong>
+          </div>
+          <div class="analytics-box">
+            <span>Saved Scans</span>
+            <strong id="analyticsSavedCount">0</strong>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel-card history-card" id="history">
+        <div class="history-head">
+          <div>
+            <p class="card-label">History</p>
+            <h2>Recent Scans</h2>
+          </div>
+          <button id="clearHistoryBtn" type="button">Clear</button>
+        </div>
+        <ul class="history-list" id="historyList"></ul>
+      </section>
+    </aside>
+  </main>
 
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1635987980/pose.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@0.5.1635987980/camera_utils.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils@0.5.1635987980/drawing_utils.js"></script>
-  <script type="module" src="scanner.js"></script>
+  <div class="guide-modal" id="guideModal" aria-hidden="true">
+    <div class="guide-backdrop" id="guideBackdrop"></div>
+    <div class="guide-dialog" role="dialog" aria-modal="true" aria-labelledby="guideTitle">
+      <div class="guide-head">
+        <div>
+          <p class="card-label">Calibration Wizard</p>
+          <h2 id="guideTitle">Get ready for a cleaner scan</h2>
+        </div>
+        <div class="guide-counter" id="guideCounter">Step 1 / 3</div>
+      </div>
+      <p class="guide-body" id="guideBody">
+        We will quickly walk through light, distance, and calibration so the scan starts from a stronger baseline.
+      </p>
+      <div class="guide-cards" id="guideCards">
+        <div class="guide-card">
+          <span>Step 1</span>
+          <strong>Stand in even light and face the camera squarely.</strong>
+        </div>
+        <div class="guide-card">
+          <span>Step 2</span>
+          <strong>Keep your full body visible from head to feet.</strong>
+        </div>
+        <div class="guide-card">
+          <span>Step 3</span>
+          <strong>Review the tuning controls if you want a manual nudge.</strong>
+        </div>
+      </div>
+      <div class="guide-actions">
+        <div class="left">
+          <button class="secondary-btn" id="guidePrevBtn" type="button">Back</button>
+          <button class="secondary-btn" id="guideSkipBtn" type="button">Skip</button>
+        </div>
+        <div class="right">
+          <button class="ghost-btn" id="guideNextBtn" type="button">Next</button>
+          <button class="primary-btn" id="guideDoneBtn" type="button">Start Scan</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script type="module" src="app.js"></script>
 </body>
 </html>
